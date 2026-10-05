@@ -1,0 +1,18 @@
+# Dependencias
+node_modules/
+*/node_modules/
+
+# Entornos y credenciales
+.env
+*/.env
+
+# Archivos subidos o temporales
+uploads/
+*/uploads/
+dist/
+*/dist/
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
