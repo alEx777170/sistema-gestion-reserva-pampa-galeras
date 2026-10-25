@@ -12,6 +12,8 @@ const especiesRouter = require('./routes/especies');
 const hatosRouter = require('./routes/hatos');
 const reservasRouter = require('./routes/reservas');
 const actividadesRouter = require('./routes/actividades');
+const reservasVisitaRouter = require('./routes/reservasVisita');
+const turistasRouter = require('./routes/turistas');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -31,6 +33,8 @@ app.use('/api/especies', especiesRouter);
 app.use('/api/hatos', hatosRouter);
 app.use('/api/reservas', reservasRouter);
 app.use('/api/actividades', actividadesRouter);
+app.use('/api/reservas-visita', reservasVisitaRouter);
+app.use('/api/turistas', turistasRouter);
 
 app.get('/', (req, res) => {
   res.send({ ok: true, message: 'Reserva backend up. Use /api/sql or /api/exec' });

@@ -8,6 +8,7 @@ import Animales from './pages/Animales'
 import Especies from './pages/Especies'
 import Reservas from './pages/Reservas'
 import Actividades from './pages/Actividades'
+import ReservarVisita from './pages/ReservarVisita'
 import Admin from './pages/Admin'
 import ProtectedRoute from './components/ProtectedRoute'
 import './app.css'
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="/especies" element={<Especies />} />
             <Route path="/reservas" element={<Reservas />} />
             <Route path="/actividades" element={<Actividades />} />
+            <Route path="/reservar-visita" element={<ReservarVisita />} />
             <Route
               path="/admin"
               element={
