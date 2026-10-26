@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 
-export default function Reservas() {
+export default function Areas() {
   const [reservas, setReservas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -28,7 +28,7 @@ export default function Reservas() {
       setReservas(res.data.rows || [])
     } catch (err) {
       console.error(err)
-      setError('Error cargando reservas')
+      setError('Error cargando áreas')
     } finally {
       setLoading(false)
     }
@@ -59,7 +59,7 @@ export default function Reservas() {
   async function handleCreate(e) {
     e.preventDefault()
     if (!token) {
-      alert('Debes iniciar sesión para crear reservas. Ve a /admin y haz login.')
+      alert('Debes iniciar sesión para crear áreas. Ve a /admin y haz login.')
       return
     }
     try {
@@ -77,7 +77,7 @@ export default function Reservas() {
             })
           } catch (err) {
             console.error('Error subiendo foto:', err)
-            alert('Reserva creada pero error al subir foto: ' + (err?.response?.data?.error || err.message))
+            alert('Área creada pero error al subir foto: ' + (err?.response?.data?.error || err.message))
           } finally {
             setUploadingPhoto(false)
           }
@@ -85,12 +85,12 @@ export default function Reservas() {
         
         const res = await axios.get('/api/reservas')
         setReservas(res.data.rows || [])
-        setSuccessMsg('✓ Reserva creada exitosamente' + (photoFile ? ' con foto' : ''))
+        setSuccessMsg('✓ Área creada exitosamente' + (photoFile ? ' con foto' : ''))
         resetForm()
         setTimeout(() => setSuccessMsg(''), 3000)
       }
     } catch (err) {
-      alert('Error creando reserva: ' + (err?.response?.data?.error || err.message))
+      alert('Error creando área: ' + (err?.response?.data?.error || err.message))
     }
   }
 
@@ -114,7 +114,7 @@ export default function Reservas() {
   async function handleUpdate(e) {
     e.preventDefault()
     if (!token) {
-      alert('Debes iniciar sesión para editar reservas. Ve a /admin y haz login.')
+      alert('Debes iniciar sesión para editar áreas. Ve a /admin y haz login.')
       return
     }
     try {
@@ -130,7 +130,7 @@ export default function Reservas() {
             })
           } catch (err) {
             console.error('Error subiendo foto:', err)
-            alert('Reserva actualizada pero error al subir foto: ' + (err?.response?.data?.error || err.message))
+            alert('Área actualizada pero error al subir foto: ' + (err?.response?.data?.error || err.message))
           } finally {
             setUploadingPhoto(false)
           }
@@ -138,26 +138,26 @@ export default function Reservas() {
         
         const res = await axios.get('/api/reservas')
         setReservas(res.data.rows || [])
-        setSuccessMsg('✓ Reserva actualizada exitosamente' + (photoFile ? ' con nueva foto' : ''))
+        setSuccessMsg('✓ Área actualizada exitosamente' + (photoFile ? ' con nueva foto' : ''))
         resetForm()
         setTimeout(() => setSuccessMsg(''), 3000)
       }
     } catch (err) {
-      alert('Error actualizando reserva: ' + (err?.response?.data?.error || err.message))
+      alert('Error actualizando área: ' + (err?.response?.data?.error || err.message))
     }
   }
 
   async function handleDelete(id) {
     if (!token) {
-      alert('Debes iniciar sesión para eliminar reservas. Ve a /admin y haz login.')
+      alert('Debes iniciar sesión para eliminar áreas. Ve a /admin y haz login.')
       return
     }
-    if (!confirm('Eliminar reserva #' + id + '? Esta acción es irreversible.')) return
+    if (!confirm('Eliminar área #' + id + '? Esta acción es irreversible.')) return
     try {
       const r = await axios.delete(`/api/reservas/${id}`)
       if (r.data && r.data.ok) {
         setReservas(prev => prev.filter(x => (x.ID_RESERVA || x.id_reserva) !== id))
-        setSuccessMsg('✓ Reserva eliminada exitosamente')
+        setSuccessMsg('✓ Área eliminada exitosamente')
         setTimeout(() => setSuccessMsg(''), 3000)
       }
     } catch (err) {
@@ -165,22 +165,22 @@ export default function Reservas() {
     }
   }
 
-  if (loading) return <div className="page"><p>Cargando reservas...</p></div>
+  if (loading) return <div className="page"><p>Cargando áreas...</p></div>
   if (error) return <div className="page"><p className="error">{error}</p></div>
 
   return (
     <div className="page reservas-page">
       <div className="page-header">
-        <h1>🏔️ Gestión de Reservas</h1>
+        <h1>🏔️ Áreas protegidas</h1>
         <p className="muted">Registra y gestiona áreas protegidas. Requiere autenticación.</p>
       </div>
 
       <div className="crud-container">
         <div className="list-section">
-          <h2>Reservas Registradas ({reservas.length})</h2>
+          <h2>Áreas registradas ({reservas.length})</h2>
           {reservas.length === 0 ? (
             <div className="empty-state">
-              <p>No hay reservas registradas. Crea una usando el formulario.</p>
+              <p>No hay áreas registradas. Crea una usando el formulario.</p>
             </div>
           ) : (
             <div className="items-list">
@@ -191,13 +191,13 @@ export default function Reservas() {
                   <div className="item-card" key={reservaId}>
                     {fotoRuta && (
                       <div className="item-photo">
-                        <img src={fotoRuta} alt={`Reserva ${reservaId}`} />
+                        <img src={fotoRuta} alt={`Área ${reservaId}`} />
                       </div>
                     )}
                     <div className="item-header">
                       <div className="item-id">#{reservaId}</div>
                       <div className="item-title">{r.NOMBRE || r.nombre}</div>
-                      <div className="item-badge">{r.CATEGORIA || r.categoria || 'Reserva'}</div>
+                      <div className="item-badge">{r.CATEGORIA || r.categoria || 'Área'}</div>
                     </div>
                     <div className="item-body">
                       <div className="info-row">
@@ -222,7 +222,7 @@ export default function Reservas() {
 
         <aside className="reservas-form-section">
           <div className="form-card">
-            <h3>{editing ? '✏️ Editar reserva' : '➕ Registrar reserva'}</h3>
+            <h3>{editing ? '✏️ Editar área' : '➕ Registrar área'}</h3>
             {successMsg && <div className="success-msg">{successMsg}</div>}
             
             <form onSubmit={editing ? handleUpdate : handleCreate}>
@@ -248,7 +248,7 @@ export default function Reservas() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="foto">Foto de la Reserva</label>
+                <label htmlFor="foto">Foto del área</label>
                 <input 
                   key={editing ? `edit-${editing}` : 'create'}
                   id="foto" 
@@ -266,7 +266,7 @@ export default function Reservas() {
 
               <div className="form-actions">
                 <button className="btn btn-primary" type="submit" disabled={uploadingPhoto}>
-                  {uploadingPhoto ? '⏳ Subiendo foto...' : (editing ? '💾 Guardar cambios' : '✅ Crear reserva')}
+                  {uploadingPhoto ? '⏳ Subiendo foto...' : (editing ? '💾 Guardar cambios' : '✅ Crear área')}
                 </button>
                 {editing && (
                   <button type="button" className="btn btn-secondary" onClick={resetForm} disabled={uploadingPhoto}>

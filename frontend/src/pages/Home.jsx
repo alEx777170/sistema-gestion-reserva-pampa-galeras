@@ -33,14 +33,14 @@ export default function Home() {
           </div>
           <div className="feature-card">
             <div className="feature-icon">🏞️</div>
-            <h3>Reservas</h3>
+            <h3>Áreas protegidas</h3>
             <p>Detalles de las áreas protegidas</p>
-            <Link to="/reservas" className="link">Ver más →</Link>
+            <Link to="/areas" className="link">Ver más →</Link>
           </div>
           <div className="feature-card">
             <div className="feature-icon">🎯</div>
             <h3>Actividades</h3>
-            <p>Actividades y eventos de la reserva</p>
+            <p>Actividades diarias a las 08:00, 11:00 y 14:00, con cupos por horario</p>
             <Link to="/actividades" className="link">Ver más →</Link>
           </div>
         </div>

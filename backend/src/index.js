@@ -1,10 +1,22 @@
 require('dotenv').config();
+
+// Variables obligatorias: sin ellas el servidor no arranca (evita claves por defecto conocidas)
+const faltantes = ['JWT_SECRET', 'ADMIN_USER', 'ADMIN_PASS', 'ORACLE_USER', 'ORACLE_PASSWORD', 'ORACLE_CONNECT_STRING']
+  .filter(k => !process.env[k]);
+if (faltantes.length) {
+  console.error(`Faltan variables en backend/.env: ${faltantes.join(', ')}. Revisa .env.example.`);
+  process.exit(1);
+}
+if (process.env.JWT_SECRET.length < 16) {
+  console.error('JWT_SECRET debe tener al menos 16 caracteres.');
+  process.exit(1);
+}
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
 
-const sqlFileRouter = require('./routes/sqlfile');
 const execRouter = require('./routes/execute');
 const authRouter = require('./routes/auth');
 const animalesRouter = require('./routes/animales');
@@ -25,7 +37,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Servir archivos estáticos desde la carpeta uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-app.use('/api/sql', sqlFileRouter);
 app.use('/api/exec', execRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/animales', animalesRouter);
@@ -37,7 +48,7 @@ app.use('/api/reservas-visita', reservasVisitaRouter);
 app.use('/api/turistas', turistasRouter);
 
 app.get('/', (req, res) => {
-  res.send({ ok: true, message: 'Reserva backend up. Use /api/sql or /api/exec' });
+  res.send({ ok: true, message: 'API de la Reserva Nacional Pampa Galeras' });
 });
 
 app.listen(PORT, () => {

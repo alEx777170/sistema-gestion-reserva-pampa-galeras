@@ -21,10 +21,10 @@ export default function Header({ token, onLogout }) {
           <Link to="/">Inicio</Link>
           <Link to="/animales">Animales</Link>
           <Link to="/especies">Especies</Link>
-          <Link to="/reservas">Reservas</Link>
           <Link to="/actividades">Actividades</Link>
+          <Link to="/reservas">Reservas</Link>
           <Link to="/turistas">Turistas</Link>
-          <Link to="/reservar-visita">Reservar visita</Link>
+          <Link to="/areas">Áreas</Link>
         </nav>
 
         <div className="header-actions">

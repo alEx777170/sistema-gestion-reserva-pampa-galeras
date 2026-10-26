@@ -7,20 +7,57 @@ const { getConnection } = require('../db');
 const { verifyToken } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
-// GET /api/animales  - lista pública de animales (join con especie, incluye foto_ruta)
+const OBJ = { outFormat: oracledb.OUT_FORMAT_OBJECT };
+
+// Valida el cuerpo; devuelve { error } o { datos }
+function validar(body) {
+  const id_hato = parseInt(body.id_hato, 10);
+  const id_especie = parseInt(body.id_especie, 10);
+  if (!id_hato || !id_especie) return { error: 'Faltan campos requeridos: hato y especie' };
+  const sexo = body.sexo ? String(body.sexo).trim().toUpperCase() : 'U';
+  if (!['M', 'F', 'U'].includes(sexo)) return { error: 'Sexo inválido' };
+  let edad = null;
+  if (body.edad_anios !== undefined && body.edad_anios !== null && body.edad_anios !== '') {
+    edad = parseInt(body.edad_anios, 10);
+    if (!(edad >= 0 && edad <= 100)) return { error: 'La edad debe estar entre 0 y 100 años' };
+  }
+  const obs = body.observaciones ? String(body.observaciones).trim().slice(0, 1000) : '';
+  return { datos: { id_hato, id_especie, sexo, edad_anios: edad, observaciones: obs || null } };
+}
+
+// ORA-02291: la FK no encontró el padre. La FK de especie es (id_especie, 'FAUNA'),
+// así que también salta si se elige una especie de flora.
+function errorBd(res, err, mensaje) {
+  if (err.errorNum === 2291) {
+    const msg = /FK_ANIMAL_ESPECIE/i.test(err.message)
+      ? 'La especie no existe o es de flora: solo se registran animales de especies de fauna.'
+      : 'El hato indicado no existe.';
+    return res.status(400).json({ error: msg });
+  }
+  console.error(mensaje, err.message);
+  return res.status(500).json({ error: mensaje, details: err.message });
+}
+
+// GET /api/animales  - lista pública (con nombre de la especie y del hato)
 router.get('/', async (req, res) => {
   let conn;
   try {
     conn = await getConnection();
-    const sql = `SELECT a.id_animal, a.id_hato, a.id_especie, e.nombre_comun AS especie, a.sexo, a.edad_anios, a.fecha_registro, a.observaciones, a.foto_ruta
+    const sql = `SELECT a.id_animal, a.id_hato, a.id_especie,
+                        NVL(e.nombre_comun, e.nombre_cientifico) AS especie,
+                        e.nombre_comun, e.nombre_cientifico, e.clase,
+                        h.zona AS hato_zona, r.nombre AS reserva,
+                        a.sexo, a.edad_anios, TO_CHAR(a.fecha_registro, 'DD/MM/YYYY') AS fecha_registro,
+                        a.observaciones, a.foto_ruta
                  FROM ANIMAL a
-                 LEFT JOIN ESPECIE e ON e.id_especie = a.id_especie
-                 ORDER BY a.id_animal`;
-    const result = await conn.execute(sql, [], { outFormat: oracledb.OUT_FORMAT_OBJECT });
+                 JOIN ESPECIE e ON e.id_especie = a.id_especie
+                 JOIN HATO h ON h.id_hato = a.id_hato
+                 LEFT JOIN RESERVA r ON r.id_reserva = h.id_reserva
+                 ORDER BY NVL(e.nombre_comun, e.nombre_cientifico), a.id_animal`;
+    const result = await conn.execute(sql, [], OBJ);
     res.json({ ok: true, rows: result.rows });
   } catch (err) {
-    console.error('Error GET /api/animales:', err.message);
-    res.status(500).json({ error: 'Error obteniendo animales', details: err.message });
+    errorBd(res, err, 'Error obteniendo animales');
   } finally {
     if (conn) try { await conn.close(); } catch (e) {}
   }
@@ -28,33 +65,20 @@ router.get('/', async (req, res) => {
 
 // POST /api/animales  - crear animal (protegido)
 router.post('/', verifyToken, async (req, res) => {
-  const { id_hato, id_especie, sexo, edad_anios, observaciones } = req.body;
-  if (!id_hato || !id_especie) return res.status(400).json({ error: 'Faltan campos requeridos: id_hato, id_especie' });
+  const v = validar(req.body);
+  if (v.error) return res.status(400).json({ error: v.error });
   let conn;
   try {
     conn = await getConnection();
-    const insertSql = `INSERT INTO ANIMAL (id_hato, id_especie, sexo, edad_anios, observaciones)
-                       VALUES (:id_hato, :id_especie, :sexo, :edad_anios, :observaciones)`;
-    const binds = {
-      id_hato: parseInt(id_hato, 10),
-      id_especie: parseInt(id_especie, 10),
-      sexo: (sexo && sexo.trim()) ? sexo.trim() : null,
-      edad_anios: edad_anios ? parseInt(edad_anios, 10) : null,
-      observaciones: (observaciones && observaciones.trim()) ? observaciones.trim() : null
-    };
-    await conn.execute(insertSql, binds, { autoCommit: false });
-    
-    const querySql = `SELECT MAX(id_animal) as id_animal FROM ANIMAL`;
-    const queryResult = await conn.execute(querySql, [], { outFormat: oracledb.OUT_FORMAT_OBJECT });
-    const newId = queryResult.rows[0]?.ID_ANIMAL || queryResult.rows[0]?.id_animal;
-    
-    await conn.commit();
-    console.log(`Animal creado: ID ${newId}`);
-    res.json({ ok: true, id_animal: newId });
+    const result = await conn.execute(
+      `INSERT INTO ANIMAL (id_hato, id_especie, sexo, edad_anios, observaciones)
+       VALUES (:id_hato, :id_especie, :sexo, :edad_anios, :observaciones)
+       RETURNING id_animal INTO :out_id`,
+      { ...v.datos, out_id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER } },
+      { autoCommit: true });
+    res.json({ ok: true, id_animal: result.outBinds.out_id[0] });
   } catch (err) {
-    console.error('Error POST /api/animales:', err.message);
-    if (conn) try { await conn.rollback(); } catch (e) {}
-    res.status(500).json({ error: 'Error creando animal', details: err.message });
+    errorBd(res, err, 'Error creando animal');
   } finally {
     if (conn) try { await conn.close(); } catch (e) {}
   }
@@ -106,19 +130,21 @@ router.post('/:id/foto', verifyToken, upload.single('foto'), async (req, res) =>
 // PUT /api/animales/:id  - actualizar animal (protegido)
 router.put('/:id', verifyToken, async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  const { id_hato, id_especie, sexo, edad_anios, observaciones } = req.body;
   if (!id) return res.status(400).json({ error: 'ID inválido' });
+  const v = validar(req.body);
+  if (v.error) return res.status(400).json({ error: v.error });
   let conn;
   try {
     conn = await getConnection();
-    const sql = `UPDATE ANIMAL SET id_hato = :id_hato, id_especie = :id_especie, sexo = :sexo, edad_anios = :edad_anios, observaciones = :observaciones WHERE id_animal = :id_animal`;
-    const binds = { id_hato, id_especie, sexo: sexo || null, edad_anios: edad_anios || null, observaciones: observaciones || null, id_animal: id };
-    const result = await conn.execute(sql, binds, { autoCommit: true });
+    const result = await conn.execute(
+      `UPDATE ANIMAL SET id_hato = :id_hato, id_especie = :id_especie, sexo = :sexo,
+                         edad_anios = :edad_anios, observaciones = :observaciones
+       WHERE id_animal = :id_animal`,
+      { ...v.datos, id_animal: id }, { autoCommit: true });
+    if (result.rowsAffected === 0) return res.status(404).json({ error: 'El animal no existe' });
     res.json({ ok: true, rowsAffected: result.rowsAffected });
   } catch (err) {
-    console.error('Error PUT /api/animales/:id', err.message);
-    if (conn) try { await conn.rollback(); } catch (e) {}
-    res.status(500).json({ error: 'Error actualizando animal', details: err.message });
+    errorBd(res, err, 'Error actualizando animal');
   } finally {
     if (conn) try { await conn.close(); } catch (e) {}
   }

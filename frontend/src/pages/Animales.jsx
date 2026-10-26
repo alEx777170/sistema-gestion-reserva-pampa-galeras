@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
+import { g, CLASES } from '../utils'
+
+const SEXOS = { M: '♂ Macho', F: '♀ Hembra', U: 'Sin determinar' }
+const nombreEspecie = e => g(e, 'nombre_comun') || g(e, 'nombre_cientifico') || '—'
 
 export default function Animales() {
   const [animales, setAnimales] = useState([])
@@ -13,6 +17,7 @@ export default function Animales() {
   const [photoFile, setPhotoFile] = useState(null)
   const [photoPreview, setPhotoPreview] = useState(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [busqueda, setBusqueda] = useState('')
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('rnpg_token') || '' : ''
 
@@ -28,7 +33,7 @@ export default function Animales() {
     try {
       const [resAnimales, resEspecies, resHatos] = await Promise.all([
         axios.get('/api/animales'),
-        axios.get('/api/especies'),
+        axios.get('/api/especies', { params: { reino: 'FAUNA' } }), // solo fauna: un animal no puede ser flora
         axios.get('/api/hatos')
       ])
       setAnimales(resAnimales.data.rows || [])
@@ -184,12 +189,12 @@ export default function Animales() {
     }
   }
 
-  async function handleDelete(id) {
+  async function handleDelete(id, nombre) {
     if (!token) {
       alert('Debes iniciar sesión como administrador para eliminar animales. Ve a /admin y haz login.')
       return
     }
-    if (!confirm('Eliminar animal #' + id + '? Esta acción es irreversible.')) return
+    if (!confirm(`¿Eliminar el registro #${id} (${nombre})? Esta acción es irreversible.`)) return
     try {
       const r = await axios.delete(`/api/animales/${id}`)
       if (r.data && r.data.ok) {
@@ -207,14 +212,17 @@ export default function Animales() {
     }
   }
 
-  function getEspecieName(id) {
-    return especies.find(e => e.ID_ESPECIE === id || e.id_especie === id)?.NOMBRE_COMUN || especies.find(e => e.ID_ESPECIE === id || e.id_especie === id)?.nombre_comun || '—'
-  }
+  // Especies de fauna agrupadas por clase para el selector
+  const especiesPorClase = {}
+  especies.forEach(e => {
+    const clase = CLASES[g(e, 'clase')] || g(e, 'clase') || 'Otras'
+    ;(especiesPorClase[clase] = especiesPorClase[clase] || []).push(e)
+  })
 
-  function getHatoLabel(id) {
-    const hato = hatos.find(h => h.ID_HATO === id || h.id_hato === id)
-    return hato ? `${hato.ZONA || hato.zona} (${hato.RESERVA || hato.reserva})` : '—'
-  }
+  const texto = busqueda.trim().toLowerCase()
+  const animalesFiltrados = !texto ? animales : animales.filter(a =>
+    [g(a, 'nombre_comun'), g(a, 'nombre_cientifico'), g(a, 'hato_zona'), g(a, 'observaciones')]
+      .some(v => v && String(v).toLowerCase().includes(texto)))
 
   if (loading) return <div className="page"><p>Cargando datos...</p></div>
   if (error) return <div className="page"><p className="error">{error}</p></div>
@@ -228,39 +236,53 @@ export default function Animales() {
 
       <div className="animales-container">
         <div className="animales-list-section">
-          <h2>Animales Registrados ({animales.length})</h2>
+          <h2>Animales registrados ({animales.length})</h2>
+          {animales.length > 0 && (
+            <div className="form-group filtro-busqueda">
+              <input type="search" value={busqueda} onChange={e => setBusqueda(e.target.value)}
+                placeholder="Buscar por especie, hato u observaciones..." aria-label="Buscar animales" />
+            </div>
+          )}
           {animales.length === 0 ? (
             <div className="empty-state">
               <p>No hay animales registrados. Crea uno usando el formulario.</p>
             </div>
           ) : (
             <div className="animales-list">
-              {animales.map(a => {
+              {animalesFiltrados.length === 0 && <p className="muted">Ningún animal coincide con «{busqueda}».</p>}
+              {animalesFiltrados.map(a => {
                 const animalId = a.ID_ANIMAL || a.id_animal
                 const fotoRuta = a.FOTO_RUTA || a.foto_ruta
                 return (
                   <div className="animal-card" key={animalId}>
                     {fotoRuta && (
                       <div className="animal-photo">
-                        <img src={fotoRuta} alt={`Animal ${animalId}`} />
+                        <img src={fotoRuta} alt={nombreEspecie(a)} />
                       </div>
                     )}
                     <div className="animal-header">
+                      <div>
+                        <div className="animal-nombre">{nombreEspecie(a)}</div>
+                        {g(a, 'nombre_comun') && <div className="nombre-cientifico">{g(a, 'nombre_cientifico')}</div>}
+                      </div>
                       <div className="animal-title">#{animalId}</div>
-                      <div className="animal-especie">{getEspecieName(a.ID_ESPECIE || a.id_especie)}</div>
                     </div>
                     <div className="animal-body">
                       <div className="animal-row">
                         <span className="label">Sexo:</span>
-                        <span className="value">{a.SEXO || a.sexo === 'M' ? '♂ Macho' : a.SEXO || a.sexo === 'F' ? '♀ Hembra' : 'Desconocido'}</span>
+                        <span className="value">{SEXOS[g(a, 'sexo')] || SEXOS.U}</span>
+                      </div>
+                      <div className="animal-row">
+                        <span className="label">Clase:</span>
+                        <span className="value">{CLASES[g(a, 'clase')] || g(a, 'clase') || '—'}</span>
                       </div>
                       <div className="animal-row">
                         <span className="label">Edad:</span>
-                        <span className="value">{a.EDAD_ANIOS ?? a.edad_anios ?? '—'} años</span>
+                        <span className="value">{g(a, 'edad_anios') == null ? '—' : `${g(a, 'edad_anios')} ${g(a, 'edad_anios') === 1 ? 'año' : 'años'}`}</span>
                       </div>
                       <div className="animal-row">
                         <span className="label">Hato:</span>
-                        <span className="value">{getHatoLabel(a.ID_HATO || a.id_hato)}</span>
+                        <span className="value">{g(a, 'hato_zona') || '—'}</span>
                       </div>
                       {(a.OBSERVACIONES || a.observaciones) && (
                         <div className="animal-row">
@@ -271,7 +293,7 @@ export default function Animales() {
                     </div>
                     <div className="animal-actions">
                       <button className="btn btn-sm btn-primary" onClick={() => startEdit(a)}>✏️ Editar</button>
-                      <button className="btn btn-sm btn-danger" onClick={() => handleDelete(animalId)}>🗑️ Eliminar</button>
+                      <button className="btn btn-sm btn-danger" onClick={() => handleDelete(animalId, nombreEspecie(a))}>🗑️ Eliminar</button>
                     </div>
                   </div>
                 )
@@ -299,13 +321,17 @@ export default function Animales() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="id_especie">Especie *</label>
+                <label htmlFor="id_especie">Especie (fauna) *</label>
                 <select id="id_especie" value={form.id_especie} onChange={e => setForm(f => ({ ...f, id_especie: e.target.value }))} required>
                   <option value="">Selecciona una especie...</option>
-                  {especies.map(e => (
-                    <option key={e.ID_ESPECIE || e.id_especie} value={e.ID_ESPECIE || e.id_especie}>
-                      {e.NOMBRE_COMUN || e.nombre_comun} ({e.NOMBRE_CIENTIFICO || e.nombre_cientifico})
-                    </option>
+                  {Object.entries(especiesPorClase).map(([clase, lista]) => (
+                    <optgroup key={clase} label={clase}>
+                      {lista.map(e => (
+                        <option key={g(e, 'id_especie')} value={g(e, 'id_especie')}>
+                          {g(e, 'nombre_comun') ? `${g(e, 'nombre_comun')} — ${g(e, 'nombre_cientifico')}` : g(e, 'nombre_cientifico')}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>
@@ -314,7 +340,7 @@ export default function Animales() {
                 <div className="form-group">
                   <label htmlFor="sexo">Sexo</label>
                   <select id="sexo" value={form.sexo} onChange={e => setForm(f => ({ ...f, sexo: e.target.value }))}>
-                    <option value="U">Desconocido</option>
+                    <option value="U">Sin determinar</option>
                     <option value="M">♂ Macho</option>
                     <option value="F">♀ Hembra</option>
                   </select>
@@ -332,7 +358,7 @@ export default function Animales() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="foto">Foto del Animal</label>
+                <label htmlFor="foto">Foto del animal (opcional)</label>
                 <input 
                   key={editing ? `edit-${editing}` : 'create'}
                   id="foto" 
