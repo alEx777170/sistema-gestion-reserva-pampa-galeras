@@ -1,16 +1,11 @@
-let jwt;
-try {
-  jwt = require('jsonwebtoken');
-} catch (err) {
-  console.error('Error loading jsonwebtoken:', err);
-  process.exit(1);
-}
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-const secret = process.env.JWT_SECRET || 'changeme';
+// JWT_SECRET es obligatorio (index.js no arranca sin él): sin valor por defecto,
+// nadie puede firmar tokens válidos con una clave conocida.
+const secret = process.env.JWT_SECRET;
 
 function generateToken(payload) {
-  if (!jwt || !jwt.sign) throw new Error('JWT library not loaded');
   return jwt.sign(payload, secret, { expiresIn: '2h' });
 }
 
@@ -19,8 +14,7 @@ function verifyToken(req, res, next) {
   if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Token missing' });
   const token = auth.slice(7);
   try {
-    const decoded = jwt.verify(token, secret);
-    req.user = decoded;
+    req.user = jwt.verify(token, secret);
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid token', details: err.message });

@@ -14,4 +14,9 @@ async function getConnection() {
   return await oracledb.getConnection(cfg);
 }
 
-module.exports = { getConnection };
+// Fecha y hora actual de Perú, sin depender de la zona horaria del servidor Oracle
+// (SYSDATE usa la hora del sistema operativo del servidor, que suele estar en UTC).
+const AHORA_LIMA = `CAST(SYSTIMESTAMP AT TIME ZONE 'America/Lima' AS DATE)`;
+const HOY_LIMA = `TRUNC(${AHORA_LIMA})`;
+
+module.exports = { getConnection, AHORA_LIMA, HOY_LIMA };

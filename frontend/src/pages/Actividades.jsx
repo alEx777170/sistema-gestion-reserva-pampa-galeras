@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
+import { HORARIOS } from '../utils'
 
 export default function Actividades() {
   const [actividades, setActividades] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ nombre: '', tipo: '', lugar: '', fecha_realizacion: '', duracion_min: '', costo_soles: '' })
+  const [form, setForm] = useState({ nombre: '', tipo: '', lugar: '', duracion_min: '', costo_soles: '', descripcion: '', cupo_por_horario: '' })
   const [editing, setEditing] = useState(null)
   const [successMsg, setSuccessMsg] = useState('')
   const [photoFile, setPhotoFile] = useState(null)
@@ -35,7 +36,7 @@ export default function Actividades() {
   }
 
   function resetForm() {
-    setForm({ nombre: '', tipo: '', lugar: '', fecha_realizacion: '', duracion_min: '', costo_soles: '' })
+    setForm({ nombre: '', tipo: '', lugar: '', duracion_min: '', costo_soles: '', descripcion: '', cupo_por_horario: '' })
     setEditing(null)
     setSuccessMsg('')
     setPhotoFile(null)
@@ -101,9 +102,10 @@ export default function Actividades() {
       nombre: a.NOMBRE || a.nombre || '',
       tipo: a.TIPO || a.tipo || '',
       lugar: a.LUGAR || a.lugar || '',
-      fecha_realizacion: a.FECHA_REALIZACION || a.fecha_realizacion || '',
       duracion_min: a.DURACION_MIN || a.duracion_min || '',
-      costo_soles: a.COSTO_SOLES || a.costo_soles || ''
+      costo_soles: a.COSTO_SOLES || a.costo_soles || '',
+      descripcion: a.DESCRIPCION || a.descripcion || '',
+      cupo_por_horario: a.CUPO_POR_HORARIO || a.cupo_por_horario || ''
     })
     setPhotoFile(null)
     setPhotoPreview(a.FOTO_RUTA || a.foto_ruta || null)
@@ -174,7 +176,7 @@ export default function Actividades() {
     <div className="page actividades-page">
       <div className="page-header">
         <h1>🎯 Gestión de Actividades</h1>
-        <p className="muted">Registra y gestiona actividades de la reserva. Requiere autenticación.</p>
+        <p className="muted">Todas las actividades se realizan cada día a las {HORARIOS.join(', ')}. Cada horario tiene su propio cupo; la fecha la elige el turista al reservar.</p>
       </div>
 
       <div className="crud-container">
@@ -202,23 +204,28 @@ export default function Actividades() {
                       <div className="item-badge">{a.TIPO || a.tipo || 'Actividad'}</div>
                     </div>
                     <div className="item-body">
+                      {(a.DESCRIPCION || a.descripcion) && (
+                        <p className="muted" style={{ margin: '0 0 0.75rem', lineHeight: 1.5 }}>{a.DESCRIPCION || a.descripcion}</p>
+                      )}
                       <div className="info-row">
                         <span className="label">Lugar:</span>
                         <span className="value">{a.LUGAR || a.lugar || '—'}</span>
                       </div>
-                      {(a.FECHA_REALIZACION || a.fecha_realizacion) && (
-                        <div className="info-row">
-                          <span className="label">Fecha:</span>
-                          <span className="value">{a.FECHA_REALIZACION || a.fecha_realizacion}</span>
-                        </div>
-                      )}
+                      <div className="info-row">
+                        <span className="label">Horarios:</span>
+                        <span className="value">{a.HORARIOS || a.horarios || 'Sin horarios'}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Cupo:</span>
+                        <span className="value">{(a.CUPO_POR_HORARIO || a.cupo_por_horario) ? `${a.CUPO_POR_HORARIO || a.cupo_por_horario} personas por horario` : '—'}</span>
+                      </div>
                       <div className="info-row">
                         <span className="label">Duración:</span>
-                        <span className="value">{a.DURACION_MIN || a.duracion_min || '—'} min</span>
+                        <span className="value">{(a.DURACION_MIN || a.duracion_min) ? `${a.DURACION_MIN || a.duracion_min} min` : '—'}</span>
                       </div>
                       <div className="info-row">
                         <span className="label">Costo:</span>
-                        <span className="value cost">S/ {(a.COSTO_SOLES || a.costo_soles || 0).toFixed(2)}</span>
+                        <span className="value cost">S/ {Number(a.COSTO_SOLES || a.costo_soles || 0).toFixed(2)} por persona</span>
                       </div>
                     </div>
                     <div className="item-actions">
@@ -249,13 +256,13 @@ export default function Actividades() {
               </div>
 
               <div className="form-group">
-                <label>Lugar</label>
-                <input value={form.lugar} onChange={e => setForm(f => ({ ...f, lugar: e.target.value }))} placeholder="Ej. Zona Norte" />
+                <label>Descripción</label>
+                <textarea rows="4" maxLength={1000} value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} placeholder="Qué harán los visitantes: recorrido, qué incluye, recomendaciones..." />
               </div>
 
               <div className="form-group">
-                <label>Fecha de realización</label>
-                <input type="date" value={form.fecha_realizacion} onChange={e => setForm(f => ({ ...f, fecha_realizacion: e.target.value }))} />
+                <label>Lugar</label>
+                <input value={form.lugar} onChange={e => setForm(f => ({ ...f, lugar: e.target.value }))} placeholder="Ej. Zona Norte" />
               </div>
 
               <div className="form-row">
@@ -267,6 +274,12 @@ export default function Actividades() {
                   <label>Costo (S/.)</label>
                   <input type="number" min="0" step="0.01" value={form.costo_soles} onChange={e => setForm(f => ({ ...f, costo_soles: e.target.value }))} placeholder="50.00" />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label>Cupo por horario</label>
+                <input type="number" min="1" max="9999" value={form.cupo_por_horario} onChange={e => setForm(f => ({ ...f, cupo_por_horario: e.target.value }))} placeholder="10" />
+                <p className="form-note">Personas por horario ({HORARIOS.join(', ')}) en cada día. Si lo dejas vacío al crear, se usan 10.</p>
               </div>
 
               <div className="form-group">

@@ -1,7 +1,7 @@
 {
   "name": "reserva-backend",
   "version": "1.0.0",
-  "description": "Backend para leer y ejecutar proyect.sql (Oracle)",
+  "description": "API de la Reserva Nacional Pampa Galeras (Express + Oracle)",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

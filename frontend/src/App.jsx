@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import axios from 'axios'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import Home from './pages/Home'
 import Animales from './pages/Animales'
 import Especies from './pages/Especies'
-import Reservas from './pages/Reservas'
+import Areas from './pages/Areas'
 import Actividades from './pages/Actividades'
-import ReservarVisita from './pages/ReservarVisita'
+import ReservasVisita from './pages/ReservasVisita'
+import Turistas from './pages/Turistas'
 import Admin from './pages/Admin'
 import ProtectedRoute from './components/ProtectedRoute'
 import './app.css'
@@ -43,9 +44,11 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/animales" element={<Animales />} />
             <Route path="/especies" element={<Especies />} />
-            <Route path="/reservas" element={<Reservas />} />
+            <Route path="/areas" element={<Areas />} />
             <Route path="/actividades" element={<Actividades />} />
-            <Route path="/reservar-visita" element={<ReservarVisita />} />
+            <Route path="/turistas" element={<Turistas />} />
+            <Route path="/reservas" element={<ReservasVisita />} />
+            <Route path="/reservar-visita" element={<Navigate to="/reservas" replace />} />
             <Route
               path="/admin"
               element={

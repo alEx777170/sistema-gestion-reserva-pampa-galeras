@@ -1,6 +1,6 @@
 # Reserva Frontend
 
-App React (Vite) ligera que consume el backend y muestra las secciones y el archivo completo `proyect.sql`.
+App React (Vite) que consume la API del backend.
 
 Instalación:
 

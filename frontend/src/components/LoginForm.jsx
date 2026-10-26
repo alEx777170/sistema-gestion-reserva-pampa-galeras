@@ -2,8 +2,8 @@ import React, { useState } from 'react'
 import axios from 'axios'
 
 export default function LoginForm({ onLogin }) {
-  const [user, setUser] = useState('admin')
-  const [pass, setPass] = useState('changeme')
+  const [user, setUser] = useState('')
+  const [pass, setPass] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
