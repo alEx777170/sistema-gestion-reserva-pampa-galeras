@@ -23,6 +23,7 @@ export default function Header({ token, onLogout }) {
           <Link to="/especies">Especies</Link>
           <Link to="/reservas">Reservas</Link>
           <Link to="/actividades">Actividades</Link>
+          <Link to="/turistas">Turistas</Link>
           <Link to="/reservar-visita">Reservar visita</Link>
         </nav>
 

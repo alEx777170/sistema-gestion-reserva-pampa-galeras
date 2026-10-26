@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 
+// Las fechas llegan como 'AAAA-MM-DD' (sin zona horaria) y se muestran como dd/mm/aaaa
+const fmtFecha = s => (s ? String(s).slice(0, 10).split('-').reverse().join('/') : '—')
+
 export default function Actividades() {
   const [actividades, setActividades] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ nombre: '', tipo: '', lugar: '', fecha_realizacion: '', duracion_min: '', costo_soles: '' })
+  const [form, setForm] = useState({ nombre: '', tipo: '', lugar: '', fecha_realizacion: '', duracion_min: '', costo_soles: '', descripcion: '', cupo_por_horario: '' })
   const [editing, setEditing] = useState(null)
   const [successMsg, setSuccessMsg] = useState('')
   const [photoFile, setPhotoFile] = useState(null)
@@ -35,7 +38,7 @@ export default function Actividades() {
   }
 
   function resetForm() {
-    setForm({ nombre: '', tipo: '', lugar: '', fecha_realizacion: '', duracion_min: '', costo_soles: '' })
+    setForm({ nombre: '', tipo: '', lugar: '', fecha_realizacion: '', duracion_min: '', costo_soles: '', descripcion: '', cupo_por_horario: '' })
     setEditing(null)
     setSuccessMsg('')
     setPhotoFile(null)
@@ -103,7 +106,9 @@ export default function Actividades() {
       lugar: a.LUGAR || a.lugar || '',
       fecha_realizacion: a.FECHA_REALIZACION || a.fecha_realizacion || '',
       duracion_min: a.DURACION_MIN || a.duracion_min || '',
-      costo_soles: a.COSTO_SOLES || a.costo_soles || ''
+      costo_soles: a.COSTO_SOLES || a.costo_soles || '',
+      descripcion: a.DESCRIPCION || a.descripcion || '',
+      cupo_por_horario: ''
     })
     setPhotoFile(null)
     setPhotoPreview(a.FOTO_RUTA || a.foto_ruta || null)
@@ -202,6 +207,9 @@ export default function Actividades() {
                       <div className="item-badge">{a.TIPO || a.tipo || 'Actividad'}</div>
                     </div>
                     <div className="item-body">
+                      {(a.DESCRIPCION || a.descripcion) && (
+                        <p className="muted" style={{ margin: '0 0 0.75rem', lineHeight: 1.5 }}>{a.DESCRIPCION || a.descripcion}</p>
+                      )}
                       <div className="info-row">
                         <span className="label">Lugar:</span>
                         <span className="value">{a.LUGAR || a.lugar || '—'}</span>
@@ -209,7 +217,7 @@ export default function Actividades() {
                       {(a.FECHA_REALIZACION || a.fecha_realizacion) && (
                         <div className="info-row">
                           <span className="label">Fecha:</span>
-                          <span className="value">{a.FECHA_REALIZACION || a.fecha_realizacion}</span>
+                          <span className="value">{fmtFecha(a.FECHA_REALIZACION || a.fecha_realizacion)}</span>
                         </div>
                       )}
                       <div className="info-row">
@@ -249,6 +257,11 @@ export default function Actividades() {
               </div>
 
               <div className="form-group">
+                <label>Descripción</label>
+                <textarea rows="4" maxLength={1000} value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} placeholder="Qué harán los visitantes: recorrido, qué incluye, recomendaciones..." />
+              </div>
+
+              <div className="form-group">
                 <label>Lugar</label>
                 <input value={form.lugar} onChange={e => setForm(f => ({ ...f, lugar: e.target.value }))} placeholder="Ej. Zona Norte" />
               </div>
@@ -268,6 +281,13 @@ export default function Actividades() {
                   <input type="number" min="0" step="0.01" value={form.costo_soles} onChange={e => setForm(f => ({ ...f, costo_soles: e.target.value }))} placeholder="50.00" />
                 </div>
               </div>
+
+              {!editing && (
+                <div className="form-group">
+                  <label>Cupo por horario</label>
+                  <input type="number" min="1" value={form.cupo_por_horario} onChange={e => setForm(f => ({ ...f, cupo_por_horario: e.target.value }))} placeholder="10 (horarios: 08:00, 11:00 y 14:00)" />
+                </div>
+              )}
 
               <div className="form-group">
                 <label htmlFor="foto">Foto de la Actividad</label>
