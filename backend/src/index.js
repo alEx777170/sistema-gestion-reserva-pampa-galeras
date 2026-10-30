@@ -51,11 +51,32 @@ app.use('/api/turistas', turistasRouter);
 app.use('/api/personal', personalRouter);
 app.use('/api/asignaciones', actividadPersonalRouter);
 
-app.get('/', (req, res) => {
-  res.send({ ok: true, message: 'API de la Reserva Nacional Pampa Galeras' });
-});
+// ---------- Producción: servir frontend compilado ----------
+const frontendDist = path.join(__dirname, '../../frontend/dist');
+const fs = require('fs');
 
-app.listen(PORT, () => {
+if (fs.existsSync(frontendDist)) {
+  // Servir archivos estáticos (JS, CSS, imágenes del build)
+  app.use(express.static(frontendDist));
+
+  // SPA fallback: cualquier ruta que no sea /api ni /uploads
+  // devuelve index.html para que React Router la maneje
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
+      res.sendFile(path.join(frontendDist, 'index.html'));
+    } else {
+      res.status(404).json({ error: 'Ruta no encontrada' });
+    }
+  });
+  console.log('Sirviendo frontend desde', frontendDist);
+} else {
+  // En desarrollo (sin build), solo mostrar info de la API
+  app.get('/', (req, res) => {
+    res.send({ ok: true, message: 'API de la Reserva Nacional Pampa Galeras' });
+  });
+}
+
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server listening on port ${PORT}`);
 });
 
