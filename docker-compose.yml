@@ -1,0 +1,18 @@
+# Reserva Nacional Pampa Galeras - sistema completo en un solo servicio
+# Uso:  docker compose up -d --build
+# Requiere: backend/.env con las variables de la ADB (ver .env.example)
+services:
+  app:
+    build: .
+    container_name: pampa-galeras
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      # Fotos subidas desde la app (sobreviven a reinicios/actualizaciones)
+      - uploads_data:/app/backend/uploads
+
+volumes:
+  uploads_data:

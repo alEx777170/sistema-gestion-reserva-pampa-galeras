@@ -6,6 +6,20 @@ node_modules/
 .env
 */.env
 
+# Wallet de Oracle ADB (credenciales de acceso a la base en la nube)
+# NUNCA subirlo a un repositorio público: en Render se inyecta como
+# variable secreta WALLET_B64 (ver DESPLIEGUE.md)
+# El .gitkeep se mantiene para que la carpeta exista en el repo.
+backend/wallet/*
+!backend/wallet/.gitkeep
+*.sso
+*.p12
+*.jks
+*.pem
+
+# Wallet codificado en base64 (se genera local para Render)
+wallet_b64.txt
+
 # Archivos subidos o temporales
 uploads/
 */uploads/

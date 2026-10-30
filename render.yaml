@@ -1,0 +1,29 @@
+# Configuración de Render (https://render.com)
+# Deploy de un servidor web gratuito construido desde el Dockerfile de la raíz.
+# Nota: en el plan Free las fotos subidas no persisten entre deploys
+# (se guardan en disco efímero); la persistencia requiere plan de pago.
+services:
+  - type: web
+    name: pampa-galeras
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      # Seguras: Render las cifra y nunca se muestran tras guardarse
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_USER
+        value: admin
+      - key: ADMIN_PASS
+        value: admin123
+      - key: ORACLE_USER
+        sync: false
+      - key: ORACLE_PASSWORD
+        sync: false
+      - key: ORACLE_CONNECT_STRING
+        sync: false
+      # Wallet de la ADB en base64 (generar con scripts/gen_wallet_b64.ps1)
+      - key: WALLET_B64
+        sync: false

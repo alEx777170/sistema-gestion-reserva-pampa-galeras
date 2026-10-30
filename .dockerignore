@@ -1,0 +1,25 @@
+# Dependencias y builds locales (se regeneran dentro de la imagen)
+node_modules
+**/node_modules
+dist
+**/dist
+
+# Git y metadatos
+.git
+.gitignore
+
+# Credenciales: el .env se inyecta en tiempo de ejecución (docker-compose env_file)
+.env
+**/.env
+
+# Subidas locales (en el contenedor se usa un volumen)
+uploads/
+**/uploads/
+
+# Archivos del sistema y documentación
+*.md
+Thumbs.db
+.DS_Store
+
+# Wallet en base64 (generado localmente para Render; nunca en la imagen)
+wallet_b64.txt

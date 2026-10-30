@@ -1,0 +1,6 @@
+Esta carpeta guarda el wallet de Oracle ADB (tnsnames.ora, cwallet.sso, ...).
+Los archivos del wallet NO se suben al repositorio (.gitignore) porque contienen
+credenciales.
+
+Local:  copia aquí el wallet descargado de OCI (Database connection → Download wallet).
+Render: la variable secreta WALLET_B64 la completa al arrancar (ver DESPLIEGUE.md).

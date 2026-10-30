@@ -1,0 +1,53 @@
+================================================================
+  SISTEMA DE GESTIÓN — RESERVA NACIONAL PAMPA GALERAS
+  Desplegado en servidor gratuito con Oracle como base de datos
+================================================================
+
+INTEGRANTES
+-----------
+1. [NOMBRE APELLIDO] — Código: [00000000]
+2. [NOMBRE APELLIDO] — Código: [00000000]
+3. [NOMBRE APELLIDO] — Código: [00000000]
+(Solo un integrante sube este archivo con lo solicitado)
+
+
+ENLACE AL SISTEMA
+-----------------
+URL:      https://pampa-galeras-xxxx.onrender.com
+          (completar con la URL real que asigna Render al crear el servicio)
+Panel:    misma URL (la SPA de React incluye el acceso de administración)
+
+
+CREDENCIALES PARA ACCEDER
+-------------------------
+Aplicación (panel de administración):
+  Usuario: admin
+  Contraseña: admin123
+
+Base de datos Oracle (ADB - Oracle Cloud, región us-ashburn-1):
+  Usuario del esquema (backend): admin_rnpg / AdminRNPG_2025*
+  Usuario ADMIN (solo despliegue): ADMIN / (se entrega por mensaje al docente)
+
+Nota: la ADB usa wallet TLS (puerto 1522); la conexión está configurada
+en el backend, no requiere configuración del lado del usuario.
+
+
+TECNOLOGÍAS
+-----------
+- Frontend: React 18 + Vite + React Router + Axios
+- Backend: Node.js 20 + Express + node-oracledb (modo thin)
+- Base de datos: Oracle Autonomous Database 26ai (Always Free, OCI)
+- Empaquetado: Docker (imagen multi-etapa: Vite + Express) + docker-compose
+- Servidor: Render.com (plan Free, servicio web construido desde Dockerfile)
+- Despliegue de BD: script automático backend/setup_adb.js (adaptado a ADB)
+
+
+DESPLIEGUE (resumen)
+--------------------
+1. El esquema se cargó en la ADB con:  cd backend && node setup_adb.js
+2. El sistema está desplegado en Render desde el Dockerfile de la raíz;
+   la conexión a la ADB usa el wallet inyectado como variable WALLET_B64.
+3. Detalle completo: ver DESPLIEGUE.md en la raíz del proyecto.
+
+Repositorio: https://github.com/alEx777170/sistema-gestion-reserva-pampa-galeras
+================================================================

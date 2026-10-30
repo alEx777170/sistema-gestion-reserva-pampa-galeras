@@ -41,6 +41,9 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use('/api/exec', execRouter);
 app.use('/api/auth', authRouter);
+
+// Health check para Render/Docker (sin base de datos, responde siempre)
+app.get('/api/health', (req, res) => res.json({ ok: true, service: 'pampa-galeras' }));
 app.use('/api/animales', animalesRouter);
 app.use('/api/especies', especiesRouter);
 app.use('/api/hatos', hatosRouter);
