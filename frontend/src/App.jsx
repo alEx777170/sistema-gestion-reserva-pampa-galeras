@@ -10,6 +10,9 @@ import Areas from './pages/Areas'
 import Actividades from './pages/Actividades'
 import ReservasVisita from './pages/ReservasVisita'
 import Turistas from './pages/Turistas'
+import Personal from './pages/Personal'
+import Hatos from './pages/Hatos'
+import Asignaciones from './pages/Asignaciones'
 import Admin from './pages/Admin'
 import ProtectedRoute from './components/ProtectedRoute'
 import './app.css'
@@ -47,6 +50,9 @@ export default function App() {
             <Route path="/areas" element={<Areas />} />
             <Route path="/actividades" element={<Actividades />} />
             <Route path="/turistas" element={<Turistas />} />
+            <Route path="/personal" element={<Personal />} />
+            <Route path="/hatos" element={<Hatos />} />
+            <Route path="/asignaciones" element={<Asignaciones />} />
             <Route path="/reservas" element={<ReservasVisita />} />
             <Route path="/reservar-visita" element={<Navigate to="/reservas" replace />} />
             <Route

@@ -24,6 +24,9 @@ export default function Header({ token, onLogout }) {
           <Link to="/actividades">Actividades</Link>
           <Link to="/reservas">Reservas</Link>
           <Link to="/turistas">Turistas</Link>
+          <Link to="/personal">Personal</Link>
+          <Link to="/hatos">Hatos</Link>
+          <Link to="/asignaciones">Asignaciones</Link>
           <Link to="/areas">Áreas</Link>
         </nav>
 

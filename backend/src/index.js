@@ -26,6 +26,8 @@ const reservasRouter = require('./routes/reservas');
 const actividadesRouter = require('./routes/actividades');
 const reservasVisitaRouter = require('./routes/reservasVisita');
 const turistasRouter = require('./routes/turistas');
+const personalRouter = require('./routes/personal');
+const actividadPersonalRouter = require('./routes/actividadPersonal');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -46,6 +48,8 @@ app.use('/api/reservas', reservasRouter);
 app.use('/api/actividades', actividadesRouter);
 app.use('/api/reservas-visita', reservasVisitaRouter);
 app.use('/api/turistas', turistasRouter);
+app.use('/api/personal', personalRouter);
+app.use('/api/asignaciones', actividadPersonalRouter);
 
 app.get('/', (req, res) => {
   res.send({ ok: true, message: 'API de la Reserva Nacional Pampa Galeras' });
