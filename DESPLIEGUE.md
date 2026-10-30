@@ -135,7 +135,7 @@ El wallet de la ADB y el `.env` **no** se suben (`.gitignore` los excluye).
 |---|---|
 | `ORACLE_USER` | `admin_rnpg` |
 | `ORACLE_PASSWORD` | `AdminRNPG_2025*` |
-| `ORACLE_CONNECT_STRING` | `xdj14bpg9jq95hgc_high` |
+| `ORACLE_CONNECT_STRING` | `vkczdham6nyr8ljv_high` |
 | `WALLET_B64` | (contenido de `wallet_b64.txt`, una sola línea enorme) |
 | `JWT_SECRET` | (una frase secreta de ≥16 caracteres) |
 | `ADMIN_USER` | `admin` |

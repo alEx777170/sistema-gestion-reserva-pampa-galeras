@@ -25,6 +25,10 @@ const oracledb = require('oracledb');
 // Mismo mecanismo de wallet que usa src/db.js
 process.env.TNS_ADMIN = process.env.TNS_ADMIN || path.join(__dirname, 'wallet');
 
+// Modo thick (Instant Client): la ADB solo acepta este modo (ver src/init.js)
+const { initOracle } = require('./src/init');
+initOracle();
+
 const ADMIN_USER = process.env.ORACLE_ADMIN_USER || 'ADMIN';
 const ADMIN_PASS = process.env.ORACLE_ADMIN_PASSWORD;
 const APP_USER = process.env.ORACLE_USER || 'admin_rnpg';
@@ -79,19 +83,79 @@ async function run(c, sql, label) {
   }
 }
 
+/**
+ * Divide un script SQL en sentencias completas.
+ * Respeta los ';' que aparecen dentro de:
+ *   - cadenas '...' e identificadores "..." (con '' / "" escapados)
+ *   - comentarios de línea --  y de bloque /* ... *\/
+ * (El split(';') simple cortaba los comentarios "todo los días; la fecha..."
+ *  y las descripciones que contienen ';', generando ORA-00900 / ORA-01756.)
+ */
+function dividirSentencias(sql) {
+  const out = [];
+  let buf = '';
+  let i = 0;
+  const n = sql.length;
+  while (i < n) {
+    const dos = sql.substr(i, 2);
+    if (dos === '--') {                       // comentario hasta fin de línea
+      let fin = sql.indexOf('\n', i);
+      if (fin === -1) fin = n;
+      buf += sql.slice(i, fin);
+      i = fin;
+      continue;
+    }
+    if (dos === '/*') {                       // comentario de bloque
+      let fin = sql.indexOf('*/', i + 2);
+      fin = fin === -1 ? n : fin + 2;
+      buf += sql.slice(i, fin);
+      i = fin;
+      continue;
+    }
+    const ch = sql[i];
+    if (ch === "'" || ch === '"') {           // cadena / identificador entre comillas
+      let j = i + 1;
+      while (j < n) {
+        if (sql[j] === ch) {
+          if (sql[j + 1] === ch) { j += 2; continue; } // '' o "" escapado
+          j++;
+          break;
+        }
+        j++;
+      }
+      buf += sql.slice(i, j);
+      i = j;
+      continue;
+    }
+    if (ch === ';') {
+      out.push(buf);
+      buf = '';
+      i++;
+      continue;
+    }
+    buf += ch;
+    i++;
+  }
+  if (buf.trim()) out.push(buf);
+  return out;
+}
+
+/** Quita comentarios y colapsa espacios (para analizar/etiquetar la sentencia). */
+function limpiarComentarios(s) {
+  return s
+    .replace(/--[^\n]*/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 async function runMany(c, sqlText) {
-  // Divide el script en sentencias por ';' (ninguna sentencia de este guion
-  // contiene ';' dentro de comillas) y las ejecuta en orden.
-  const sentencias = sqlText
-    .split(';')
-    .map(s => s.trim())
-    .filter(s => s.length > 0 && !/^--/.test(s.replace(/^(--[^\n]*\n\s*)+/, '')));
+  const sentencias = dividirSentencias(sqlText);
   let ok = 0, fail = 0;
   for (const s of sentencias) {
-    // Ignorar bloques que son solo comentarios
-    const limpio = s.replace(/--[^\n]*/g, '').trim();
-    if (!limpio) continue;
-    const r = await run(c, s, limpio.slice(0, 60).replace(/\s+/g, ' '));
+    const limpio = limpiarComentarios(s);
+    if (!limpio) continue; // sentencia que era solo comentario
+    const r = await run(c, s.trim(), limpio.slice(0, 60));
     if (r) ok++; else fail++;
   }
   return { ok, fail };
@@ -145,51 +209,40 @@ async function main() {
   console.log('[3/5] Generando proyecto_adb.sql (adaptado para ADB)...');
   const original = fs.readFileSync(path.join(__dirname, '..', 'proyecto_completo.sql'), 'utf8');
 
-  const lineas = original.split(/\r?\n/);
-  const salida = [];
-  // Patrones que ADB no permite o que no aplican (la creación de usuarios ya se hizo arriba)
-  const quitar = [
-    /^\s*ALTER\s+SESSION\s+SET\s+CONTAINER/i,
-    /^\s*ALTER\s+SYSTEM/i,
-    /^\s*(CREATE|DROP)\s+PROFILE/i,
-    /^\s*(CREATE|DROP)\s+ROLE/i,
-    /^\s*DROP\s+USER/i,
-    /^\s*CREATE\s+USER/i,
-    /^\s*GRANT\s+(CREATE|ALTER|DROP)\s+[A-Z,\s]+TO\s+rol_/i,
-    /^\s*GRANT\s+(SELECT|INSERT|UPDATE)\s+ANY\s+TABLE/i,
-    /^\s*GRANT\s+rol_/i,
-    /^\s*GRANT\s+ALTER\s+USER/i,
-    /^\s*GRANT\s+DROP\s+USER/i,
-    /^\s*WHENEVER\s+SQLERROR/i,
-    /^\s*SELECT\s+object_type/i,          // verificación dba_objects (no accesible)
-    /^\s*SELECT\s+'RESERVA'\s+AS\s+tabla/i,
-    /^\s*SELECT\s+\*\s+FROM\s+ANIMAL;/i,
-    /^\s*SELECT\s+USER\s+FROM\s+dual;/i,
-    /^\s*SELECT\s+COUNT\(\*\)\s+FROM\s+admin_rnpg/i,
-    /^\s*SELECT\s+id_reserva,\s+nombre\s+FROM\s+admin_rnpg/i,
-    /^\s*GRANT\s+SELECT\s+ON\s+vw_/i     // se re-hacen al final con usuarios reales
-  ];
-  let enBlancoSeguidas = 0;
-  for (const linea of lineas) {
-    if (quitar.some(re => re.test(linea))) continue;
-    // Colapsar líneas en blanco repetidas
-    if (/^\s*$/.test(linea)) {
-      enBlancoSeguidas++;
-      if (enBlancoSeguidas > 1) continue;
-    } else {
-      enBlancoSeguidas = 0;
-    }
-    salida.push(linea);
-  }
+  // Se analiza cada sentencia COMPLETA (no cada línea): así un CREATE USER
+  // multilínea se elimina entero y no queda su suelto "DEFAULT TABLESPACE...".
+  const sentenciasOriginales = dividirSentencias(original);
 
-  // Quitar los grants que usan roles sobre tablas/vistas (líneas sueltas GRANT ... TO rol_*)
-  const sqlLimpio = salida
-    .join('\n')
-    .replace(/^\s*GRANT\s+SELECT[^;]*TO\s+rol_[^;]*;.*$/gim, '')
-    .replace(/^\s*GRANT\s+SELECT,\s*INSERT[^;]*TO\s+rol_[^;]*;.*$/gim, '')
-    .replace(/^\s*GRANT\s+INSERT[^;]*TO\s+rol_[^;]*;.*$/gim, '')
-    .replace(/ALTER\s+SESSION\s+SET\s+CURRENT_SCHEMA[^;]*;/gi, '')
-    .replace(/ALTER\s+SESSION\s+SET\s+CONTAINER[^;]*;/gi, '');
+  // Sentencias que ADB no permite o que este script ya hace por su cuenta
+  // (usuarios, roles, perfiles y permisos: creados arriba como ADMIN).
+  const quitar = [
+    /^ALTER\s+SESSION\s+SET\s+CONTAINER/i,
+    /^ALTER\s+SESSION\s+SET\s+CURRENT_SCHEMA/i,
+    /^ALTER\s+SYSTEM/i,
+    /^(CREATE|DROP|ALTER)\s+PROFILE/i,
+    /^(CREATE|DROP|ALTER)\s+ROLE/i,
+    /^(CREATE|DROP|ALTER)\s+USER/i,
+    /^DROP\s+USER/i,
+    /^GRANT\s+/i,                          // permisos: ADMIN (sistema) + dueño (objetos)
+    /^WHENEVER\s+SQLERROR/i,
+    /^SELECT\s+object_type/i,              // verificación con DBA_OBJECTS (no disponible en ADB)
+    /^SELECT\s+'RESERVA'\s+AS\s+tabla/i,
+    /^SELECT\s+\*\s+FROM\s+ANIMAL\b/i,
+    /^SELECT\s+USER\s+FROM\s+dual/i,
+    /^SELECT\s+COUNT\(\*\)\s+FROM\s+admin_rnpg/i,
+    /^SELECT\s+id_reserva,\s+nombre\s+FROM\s+admin_rnpg/i
+  ];
+
+  const conservadas = [];
+  for (const sent of sentenciasOriginales) {
+    const limpio = limpiarComentarios(sent);
+    if (!limpio) continue;                                  // solo comentarios
+    if (quitar.some(re => re.test(limpio))) continue;
+    conservadas.push(sent.trim());
+  }
+  // ';' final: sin él, el bloque de permisos que se añade abajo se pegaría
+  // a la última sentencia (la vista vw_resumen_actividades) y Oracle daría ORA-03048.
+  const sqlLimpio = conservadas.join(';\n') + ';';
 
   // Agregar al final los permisos de objeto para los usuarios reales de ADB
   const grants = `

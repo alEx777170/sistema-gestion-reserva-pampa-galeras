@@ -35,7 +35,7 @@ en el backend, no requiere configuración del lado del usuario.
 TECNOLOGÍAS
 -----------
 - Frontend: React 18 + Vite + React Router + Axios
-- Backend: Node.js 20 + Express + node-oracledb (modo thin)
+- Backend: Node.js 20 + Express + node-oracledb (modo thick con Instant Client)
 - Base de datos: Oracle Autonomous Database 26ai (Always Free, OCI)
 - Empaquetado: Docker (imagen multi-etapa: Vite + Express) + docker-compose
 - Servidor: Render.com (plan Free, servicio web construido desde Dockerfile)

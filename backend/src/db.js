@@ -9,6 +9,10 @@ require('dotenv').config();
 const tnsAdmin = process.env.TNS_ADMIN || path.join(__dirname, '../wallet');
 process.env.TNS_ADMIN = tnsAdmin;
 
+// Modo thick (Instant Client): requerido para conectar a la ADB (ver src/init.js)
+const { initOracle } = require('./init');
+initOracle();
+
 const cfg = {
   user: process.env.ORACLE_USER,
   password: process.env.ORACLE_PASSWORD,
