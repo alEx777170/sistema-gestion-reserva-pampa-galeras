@@ -15,9 +15,11 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: ADMIN_USER
-        value: admin
+        sync: false
+      # Contraseña del panel de administración: elegir una propia al crear el servicio
+      # (no se deja un valor por defecto en el repositorio)
       - key: ADMIN_PASS
-        value: admin123
+        sync: false
       - key: ORACLE_USER
         sync: false
       - key: ORACLE_PASSWORD

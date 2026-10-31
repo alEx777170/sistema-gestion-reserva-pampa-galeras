@@ -138,8 +138,8 @@ El wallet de la ADB y el `.env` **no** se suben (`.gitignore` los excluye).
 | `ORACLE_CONNECT_STRING` | `vkczdham6nyr8ljv_high` |
 | `WALLET_B64` | (contenido de `wallet_b64.txt`, una sola línea enorme) |
 | `JWT_SECRET` | (una frase secreta de ≥16 caracteres) |
-| `ADMIN_USER` | `admin` |
-| `ADMIN_PASS` | `admin123` |
+| `ADMIN_USER` | (usuario del panel de administración, p. ej. `admin`) |
+| `ADMIN_PASS` | (contraseña propia y fuerte; NO usar `admin123` en producción) |
 
 `WALLET_B64` se genera en tu PC con:
 
@@ -158,7 +158,7 @@ cd backend
 node setup_adb.js
 ```
 
-**Paso D — Verificar:** abre la URL de Render, entra con `admin`/`admin123`.
+**Paso D — Verificar:** abre la URL de Render, entra con el `ADMIN_USER`/`ADMIN_PASS` que definiste en Render.
 
 > Nota del plan Free: tras ~15 min sin visitas la app se "duerme"; la primera
 > visita tarda ~1 min en despertarla. Al reciclar el contenedor se pierden las

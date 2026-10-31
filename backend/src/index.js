@@ -17,6 +17,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
 
+const { closePool } = require('./db');
 const execRouter = require('./routes/execute');
 const authRouter = require('./routes/auth');
 const animalesRouter = require('./routes/animales');
@@ -31,6 +32,18 @@ const actividadPersonalRouter = require('./routes/actividadPersonal');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+// Detrás del proxy de Render: req.ip debe ser la IP real del cliente (límite de login)
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
+
+// Cabeceras de seguridad básicas
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 
 app.use(cors());
 app.use(bodyParser.json({ limit: '5mb' }));
@@ -79,7 +92,31 @@ if (fs.existsSync(frontendDist)) {
   });
 }
 
-app.listen(PORT, '0.0.0.0', () => {
+// Errores no controlados (JSON mal formado, subida de archivo inválida/demasiado grande...)
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ error: 'La imagen supera el máximo de 5 MB' });
+  if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'JSON inválido' });
+  if (err.name === 'MulterError' || /Solo se permiten imágenes/.test(err.message)) {
+    return res.status(400).json({ error: err.message });
+  }
+  console.error('Error no controlado:', err.message);
+  res.status(500).json({ error: 'Error interno del servidor' });
+});
+
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
+// Cierre ordenado (Render envía SIGTERM en cada deploy): termina las peticiones y cierra el pool
+function apagar(signal) {
+  console.log(`${signal} recibido, cerrando...`);
+  server.close(async () => {
+    await closePool();
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 15000).unref();
+}
+process.on('SIGTERM', () => apagar('SIGTERM'));
+process.on('SIGINT', () => apagar('SIGINT'));
 
